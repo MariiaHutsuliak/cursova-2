@@ -3,7 +3,6 @@ from flask_sqlalchemy import SQLAlchemy
 from models import db, Employee, Department, Supplier, Contract, Product, ProductCategory, Sale, SaleItem, WorkSchedule, Delivery, DeliveryItem, ContractProduct, User, UserRequest
 from queries import BookstoreQueries
 from datetime import datetime, date, timedelta
-import os
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_moment import Moment
 from functools import wraps
@@ -253,6 +252,7 @@ def products():
 def add_product():
     """Додати новий товар"""
     categories = ProductCategory.query.all()
+    departments = Department.query.all()
 
     if request.method == 'POST':
         name = request.form.get('name')
@@ -263,22 +263,23 @@ def add_product():
         price_raw = request.form.get('price')
         stock_quantity_raw = request.form.get('stock_quantity')
         category_id = request.form.get('category_id')
+        department_id = request.form.get('department_id')
 
         if not name or not price_raw or not category_id:
             flash('Назва, ціна та категорія є обовʼязковими полями.', 'danger')
-            return render_template('add_product.html', categories=categories)
+            return render_template('add_product.html', categories=categories, departments=departments)
 
         try:
             price = float(price_raw)
         except ValueError:
             flash('Невірний формат ціни.', 'danger')
-            return render_template('add_product.html', categories=categories)
+            return render_template('add_product.html', categories=categories, departments=departments)
 
         try:
             stock_quantity = int(stock_quantity_raw) if stock_quantity_raw else 0
         except ValueError:
             flash('Невірний формат кількості.', 'danger')
-            return render_template('add_product.html', categories=categories)
+            return render_template('add_product.html', categories=categories, departments=departments)
 
         pub_date = None
         if publication_date_raw:
@@ -286,7 +287,7 @@ def add_product():
                 pub_date = datetime.strptime(publication_date_raw, '%Y-%m-%d').date()
             except ValueError:
                 flash('Невірний формат дати публікації.', 'danger')
-                return render_template('add_product.html', categories=categories)
+                return render_template('add_product.html', categories=categories, departments=departments)
 
         product = Product(
             name=name,
@@ -296,14 +297,15 @@ def add_product():
             publication_date=pub_date,
             price=price,
             stock_quantity=stock_quantity,
-            category_id=category_id
+            category_id=category_id,
+            department_id = department_id
         )
         db.session.add(product)
         db.session.commit()
         flash(f'Товар "{product.name}" додано успішно.', 'success')
         return redirect(url_for('products'))
 
-    return render_template('add_product.html', categories=categories)
+    return render_template('add_product.html', categories=categories,departments=departments)
 
 
 @app.route('/products/edit/<int:product_id>', methods=['GET', 'POST'])
@@ -312,6 +314,7 @@ def edit_product(product_id):
     """Редагувати товар"""
     product = Product.query.get_or_404(product_id)
     categories = ProductCategory.query.all()
+    departments = Department.query.all()
 
     if request.method == 'POST':
         product.name = request.form.get('name')
@@ -323,35 +326,37 @@ def edit_product(product_id):
         price_raw = request.form.get('price')
         stock_quantity_raw = request.form.get('stock_quantity')
         category_id = request.form.get('category_id')
+        department_id = request.form.get('department_id')
 
         try:
             product.price = float(price_raw)
         except ValueError:
             flash('Невірний формат ціни.', 'danger')
-            return render_template('edit_product.html', product=product, categories=categories)
+            return render_template('edit_product.html', product=product, categories=categories, departments=departments)
 
         try:
             product.stock_quantity = int(stock_quantity_raw) if stock_quantity_raw else 0
         except ValueError:
             flash('Невірний формат кількості.', 'danger')
-            return render_template('edit_product.html', product=product, categories=categories)
+            return render_template('edit_product.html', product=product, categories=categories, departments=departments)
 
         if publication_date_raw:
             try:
                 product.publication_date = datetime.strptime(publication_date_raw, '%Y-%m-%d').date()
             except ValueError:
                 flash('Невірний формат дати публікації.', 'danger')
-                return render_template('edit_product.html', product=product, categories=categories)
+                return render_template('edit_product.html', product=product, categories=categories, departments=departments)
         else:
             product.publication_date = None
 
         product.category_id = category_id
+        product.department_id = department_id
 
         db.session.commit()
         flash(f'Товар "{product.name}" оновлено успішно.', 'success')
         return redirect(url_for('products'))
 
-    return render_template('edit_product.html', product=product, categories=categories)
+    return render_template('edit_product.html', product=product, categories=categories, departments=departments)
 
 
 @app.route('/products/delete/<int:product_id>')
@@ -377,7 +382,241 @@ def delete_product(product_id):
 def sales():
     """Сторінка продажів"""
     sales = Sale.query.order_by(Sale.sale_date.desc()).limit(50).all()
-    return render_template('sales.html', sales=sales)
+    today = date.today()
+    return render_template('sales.html', sales=sales, today=today)
+
+
+@app.route('/sales/add', methods=['GET', 'POST'])
+@requires_operator_or_admin
+def add_sale():
+    employees = Employee.query.filter_by(is_deleted=False).all()
+
+    # ---------------- GET ----------------
+    if request.method == 'GET':
+        selected_emp_id = request.args.get('employee_id')
+
+        # Нема співробітника — просто форма вибору
+        if not selected_emp_id:
+            return render_template("add_sale.html",
+                                   employees=employees,
+                                   products=[],
+                                   selected_emp_id=None)
+
+        employee = Employee.query.get(int(selected_emp_id))
+
+        # Завантажуємо товари лише його відділу
+        products = Product.query.filter_by(
+            department_id=employee.department_id,
+            is_deleted=False
+        ).all()
+
+        return render_template("add_sale.html",
+                               employees=employees,
+                               products=products,
+                               selected_emp_id=selected_emp_id)
+
+    # ---------------- POST: створення продажу ----------------
+    employee_id = int(request.form.get('employee_id'))
+    employee = Employee.query.get(employee_id)
+
+    if not employee:
+        flash("Невірний співробітник.", "danger")
+        return redirect(url_for('add_sale'))
+
+    # Створюємо продаж
+    sale = Sale(
+        employee_id=employee_id,
+        sale_date=date.today(),
+        sale_time=datetime.now().time(),
+        total_amount=0
+    )
+    db.session.add(sale)
+    db.session.flush()
+
+    product_ids = request.form.getlist('product_id')
+    quantities = request.form.getlist('quantity')
+
+    items_added = 0
+    total = 0
+
+    for pid, qty in zip(product_ids, quantities):
+
+        # Пропускаємо пусті значення
+        if not pid or not qty:
+            continue
+
+        try:
+            quantity = int(qty)
+        except ValueError:
+            continue
+
+        if quantity <= 0:
+            continue
+
+        product = Product.query.get(int(pid))
+
+        # Перевірка відділу
+        if product.department_id != employee.department_id:
+            db.session.rollback()
+            flash("Товар не з відділу співробітника.", "danger")
+            return redirect(url_for('add_sale', employee_id=employee_id))
+
+        # 🔥 🔥 🔥 САМЕ ТУТ — ПЕРЕВІРКА СКЛАДУ + СПИСАННЯ 🔥 🔥 🔥
+        if quantity > product.stock_quantity:
+            db.session.rollback()
+            flash(
+                f"Недостатньо товару «{product.name}» на складі. Доступно: {product.stock_quantity}",
+                "danger"
+            )
+            return redirect(url_for('add_sale', employee_id=employee_id))
+
+        # Списуємо товар зі складу
+        product.stock_quantity -= quantity
+
+        unit_price = product.price
+        total_price = unit_price * quantity
+
+        sale_item = SaleItem(
+            sale_id=sale.id,
+            product_id=product.id,
+            quantity=quantity,
+            unit_price=unit_price,
+            total_price=total_price
+        )
+        db.session.add(sale_item)
+
+        total += total_price
+        items_added += 1
+
+    if items_added == 0:
+        db.session.rollback()
+        flash("Продаж повинен містити хоча б один товар.", "danger")
+        return redirect(url_for('add_sale', employee_id=employee_id))
+
+    sale.total_amount = total
+    db.session.commit()
+
+    flash("Продаж успішно створено.", "success")
+    return redirect(url_for('sales'))
+
+
+
+@app.route('/sales/edit/<int:sale_id>', methods=['GET', 'POST'])
+@requires_operator_or_admin
+def edit_sale(sale_id):
+    sale = Sale.query.get_or_404(sale_id)
+    employee = sale.employee
+
+    # Товари лише цього відділу
+    products = Product.query.filter_by(
+        department_id=employee.department_id,
+        is_deleted=False
+    ).all()
+
+    # Збираємо старі товари
+    old_items = {item.product_id: item.quantity for item in sale.sale_items}
+
+    if request.method == 'POST':
+
+        # -------- 0. Зчитуємо нові значення кількостей --------
+        new_items = {}
+        for key in request.form:
+            if key.startswith("quantity_"):
+                product_id = int(key.split("_")[1])
+                qty_raw = request.form[key]
+
+                if not qty_raw:
+                    continue
+
+                try:
+                    qty = int(qty_raw)
+                except:
+                    continue
+
+                if qty > 0:
+                    new_items[product_id] = qty
+
+        # Заборона порожнього продажу
+        if len(new_items) == 0:
+            flash("Продаж не може бути порожнім. Залиште хоча б один товар.", "danger")
+            return redirect(url_for('edit_sale', sale_id=sale.id))
+
+        # -------- 1. Повертаємо старі списання товарів на склад --------
+        for pid, old_qty in old_items.items():
+            product = Product.query.get(pid)
+            product.stock_quantity += old_qty
+
+        db.session.flush()
+
+        # -------- 2. Перевіряємо, чи вистачає товару для нових кількостей --------
+        for pid, qty in new_items.items():
+
+            product = Product.query.get(pid)
+
+            # захист від HTML-модифікації
+            if product.department_id != employee.department_id:
+                db.session.rollback()
+                flash("Товар не належить відділу співробітника.", "danger")
+                return redirect(url_for('edit_sale', sale_id=sale_id))
+
+            if qty > product.stock_quantity:
+                db.session.rollback()
+                flash(
+                    f"Недостатньо товару «{product.name}» на складі. "
+                    f"Доступно: {product.stock_quantity}",
+                    "danger"
+                )
+                return redirect(url_for('edit_sale', sale_id=sale.id))
+
+        # -------- 3. Списуємо товар згідно нових значень --------
+        for pid, qty in new_items.items():
+            product = Product.query.get(pid)
+            product.stock_quantity -= qty
+
+        # -------- 4. Оновлюємо записи SaleItem --------
+        SaleItem.query.filter_by(sale_id=sale.id).delete()
+        db.session.flush()
+
+        total_amount = 0
+        for pid, qty in new_items.items():
+            product = Product.query.get(pid)
+            total_price = float(product.price) * qty
+
+            db.session.add(SaleItem(
+                sale_id=sale.id,
+                product_id=pid,
+                quantity=qty,
+                unit_price=product.price,
+                total_price=total_price
+            ))
+
+            total_amount += total_price
+
+        sale.total_amount = total_amount
+        db.session.commit()
+
+        flash("Продаж успішно оновлено.", "success")
+        return redirect(url_for('sales'))
+
+    return render_template("edit_sale.html", sale=sale, products=products)
+
+@app.route('/sales/delete/<int:sale_id>')
+@requires_operator_or_admin
+def delete_sale(sale_id):
+    sale = Sale.query.get_or_404(sale_id)
+
+    # Повернути всі товари на склад
+    for item in sale.sale_items:
+        product = Product.query.get(item.product_id)
+        product.stock_quantity += item.quantity
+
+    # Видалити записи
+    SaleItem.query.filter_by(sale_id=sale_id).delete()
+    db.session.delete(sale)
+    db.session.commit()
+
+    flash("Продаж успішно видалено. Товари повернено на склад.", "success")
+    return redirect(url_for('sales'))
 
 @app.route('/employees/add', methods=['GET', 'POST'])
 @requires_operator_or_admin

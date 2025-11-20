@@ -170,53 +170,53 @@ def init_database():
             Product(name="Python для початківців", author="Іван Програміст", 
                    isbn="978-966-1234-56-7", publisher="Техніка", 
                    publication_date=date(2023, 1, 15), price=Decimal("450.00"), 
-                   stock_quantity=25, category_id=1),
+                   stock_quantity=25, category_id=1, department_id=1),
             Product(name="JavaScript. Повний курс", author="Петро Веб-розробник", 
                    isbn="978-966-2345-67-8", publisher="Техніка", 
                    publication_date=date(2023, 2, 20), price=Decimal("520.00"), 
-                   stock_quantity=18, category_id=1),
+                   stock_quantity=18, category_id=1, department_id=1),
             
             # Детективи
             Product(name="Вбивство в орієнт-експресі", author="Агата Крісті", 
                    isbn="978-966-3456-78-9", publisher="Детектив-Прес", 
                    publication_date=date(2022, 11, 10), price=Decimal("280.00"), 
-                   stock_quantity=35, category_id=2),
+                   stock_quantity=35, category_id=2, department_id=2),
             Product(name="Шерлок Холмс. Повне зібрання", author="Артур Конан Дойл", 
                    isbn="978-966-4567-89-0", publisher="Детектив-Прес", 
                    publication_date=date(2023, 1, 5), price=Decimal("650.00"), 
-                   stock_quantity=12, category_id=2),
+                   stock_quantity=12, category_id=2, department_id=2),
             
             # Дитяча література
             Product(name="Гаррі Поттер і філософський камінь", author="Дж.К. Роулінг", 
                    isbn="978-966-5678-90-1", publisher="Казка", 
                    publication_date=date(2022, 12, 1), price=Decimal("380.00"), 
-                   stock_quantity=28, category_id=3),
+                   stock_quantity=28, category_id=3, department_id=3),
             
             # Медична література
             Product(name="Анатомія людини", author="Проф. Медичний", 
                    isbn="978-966-6789-01-2", publisher="Здоров'я", 
                    publication_date=date(2023, 3, 1), price=Decimal("850.00"), 
-                   stock_quantity=8, category_id=4),
+                   stock_quantity=8, category_id=4, department_id=4),
             
             # Газети
             Product(name="Українська правда (щоденна)", publisher="Преса України", 
                    publication_date=date.today(), price=Decimal("15.00"), 
-                   stock_quantity=100, category_id=5),
+                   stock_quantity=100, category_id=5, department_id=5),
             
             # Журнали
             Product(name="Комп'ютерний світ", publisher="Преса України", 
                    publication_date=date(2023, 9, 1), price=Decimal("45.00"), 
-                   stock_quantity=50, category_id=6),
+                   stock_quantity=50, category_id=6, department_id=5),
             
             # Календарі
             Product(name="Календар настінний 2024", publisher="Преса України", 
                    publication_date=date(2023, 10, 1), price=Decimal("120.00"), 
-                   stock_quantity=75, category_id=7),
+                   stock_quantity=75, category_id=7, department_id=5),
             
             # Настільні ігри
             Product(name="Монополія", publisher="Ігри для всіх", 
                    publication_date=date(2023, 5, 1), price=Decimal("890.00"), 
-                   stock_quantity=15, category_id=8)
+                   stock_quantity=15, category_id=8, department_id=6)
         ]
         
         for product in products:

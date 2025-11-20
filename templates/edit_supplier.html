@@ -86,14 +86,12 @@
                                     </td>
 
                                     <td class="d-flex gap-2">
-                                        <!-- Edit -->
                                         <a href="{{ url_for('edit_contract', contract_id=contract.id) }}"
                                            class="btn btn-warning btn-sm">
                                             <i class="fas fa-edit"></i>
                                         </a>
 
                                         {% if contract.end_date < today %}
-                                            <!-- Delete allowed only if contract ended -->
                                             <a href="{{ url_for('delete_contract', contract_id=contract.id) }}"
                                                class="btn btn-danger btn-sm"
                                                onclick="return confirm('Видалити цей договір?');">

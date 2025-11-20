@@ -208,6 +208,7 @@ class Product(db.Model):
     is_deleted = db.Column(db.Boolean, default=False)
 
     # Relationships
+    department_id = db.Column(db.Integer, db.ForeignKey('departments.id'), nullable=False)
     contract_products = db.relationship('ContractProduct', backref='product', lazy=True)
     delivery_items = db.relationship('DeliveryItem', backref='product', lazy=True)
     sale_items = db.relationship('SaleItem', backref='product', lazy=True)

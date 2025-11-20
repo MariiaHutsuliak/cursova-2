@@ -94,6 +94,16 @@
                         </select>
                     </div>
 
+                    <div class="mb-3">
+                        <label class="form-label">Відділ *</label>
+                        <select class="form-select" name="department_id" required>
+                            <option value="">Оберіть відділ</option>
+                            {% for d in departments %}
+                                <option value="{{ d.id }}">{{ d.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
                     <div class="d-flex justify-content-between">
                         <button type="submit" class="btn btn-success">
                             <i class="fas fa-save"></i> Зберегти
