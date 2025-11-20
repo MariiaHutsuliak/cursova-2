@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Співробітники - Книжковий магазин{% endblock %}
+
+{% block content %}
+<h1><i class="fas fa-users"></i> Співробітники</h1>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">Список співробітників</h4>
+                {% if current_user.is_operator() or current_user.is_administrator() %}
+                <a href="{{ url_for('add_employee') }}" class="btn btn-success btn-sm">
+                    <i class="fas fa-plus-circle"></i> Додати співробітника
+                </a>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped align-middle">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>ПІБ</th>
+                                <th>Посада</th>
+                                <th>Відділ</th>
+                                <th>Телефон</th>
+                                <th>Email</th>
+                                <th>Дата прийняття</th>
+                                <th>Відпустка</th>
+                                {% if current_user.role in ['administrator', 'operator'] %}
+                                    <th>Дії</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for employee in employees %}
+                            <tr>
+                                <td>{{ employee.id }}</td>
+                                <td>{{ employee.full_name }}</td>
+                                <td>{{ employee.position }}</td>
+                                <td>
+                                    <span class="badge bg-info">{{ employee.department.name }}</span>
+                                </td>
+                                <td>{{ employee.phone or '-' }}</td>
+                                <td>{{ employee.email or '-' }}</td>
+                                <td>{{ employee.hire_date.strftime('%d.%m.%Y') }}</td>
+                                <td>
+                                    {% if employee.is_on_vacation %}
+                                        <span class="badge bg-info">Так</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Ні</span>
+                                    {% endif %}
+                                </td>
+
+                                {% if current_user.role in ['administrator', 'operator'] %}
+                                <td class="d-flex gap-2">
+                                    <a href="{{ url_for('edit_employee', employee_id=employee.id) }}"
+                                       class="btn btn-warning btn-sm">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{{ url_for('delete_employee', employee_id=employee.id) }}"
+                                       class="btn btn-danger btn-sm"
+                                       onclick="return confirm('Ви впевнені, що хочете видалити цього співробітника?');">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Статистика -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Статистика по відділах</h5>
+            </div>
+
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Відділ</th>
+                                <th>Співробітників</th>
+                                <th>Керівники</th>
+                                <th>У відпустці</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for department in departments %}
+                            <tr>
+                                <td>{{ department.name }}</td>
+                                <td>{{ department.employees|length }}</td>
+                                <td>{{ department.employees|selectattr('is_manager')|list|length }}</td>
+                                <td>{{ department.employees|selectattr('is_on_vacation')|list|length }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

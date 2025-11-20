@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Продажі - Книжковий магазин{% endblock %}
+
+{% block content %}
+<h1><i class="fas fa-cash-register"></i> Облік продажів</h1>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Останні продажі</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Дата</th>
+                                <th>Час</th>
+                                <th>Співробітник</th>
+                                <th>Відділ</th>
+                                <th>Сума</th>
+                                <th>Кількість позицій</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in sales %}
+                            <tr>
+                                <td>{{ sale.id }}</td>
+                                <td>{{ sale.sale_date.strftime('%d.%m.%Y') }}</td>
+                                <td>{{ sale.sale_time.strftime('%H:%M') }}</td>
+                                <td>{{ sale.employee.full_name }}</td>
+                                <td>{{ sale.employee.department.name }}</td>
+                                <td>{{ "%.2f"|format(sale.total_amount) }} грн</td>
+                                <td>
+                                    <span class="badge bg-primary">{{ sale.sale_items|length }}</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Статистика за сьогодні</h5>
+            </div>
+            <div class="card-body">
+                {% set today_sales = sales|selectattr('sale_date', 'equalto', moment().date) %}
+                {% set today_total = today_sales|sum(attribute='total_amount') %}
+                {% set today_count = today_sales|list|length %}
+                
+                <div class="row text-center">
+                    <div class="col-6">
+                        <h3 class="text-primary">{{ today_count }}</h3>
+                        <p class="text-muted">Продажів</p>
+                    </div>
+                    <div class="col-6">
+                        <h3 class="text-success">{{ "%.2f"|format(today_total) }} грн</h3>
+                        <p class="text-muted">Виторг</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Топ співробітники за сьогодні</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Співробітник</th>
+                                <th>Продажів</th>
+                                <th>Сума</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in sales[:5] %}
+                            <tr>
+                                <td>{{ sale.employee.full_name }}</td>
+                                <td>1</td>
+                                <td>{{ "%.2f"|format(sale.total_amount) }} грн</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
