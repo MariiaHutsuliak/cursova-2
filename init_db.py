@@ -154,10 +154,8 @@ def init_database():
                     start_date=date(2023, 3, 1), end_date=date(2023, 12, 31)),
             Contract(contract_number="DOG-2023-004", supplier_id=4, 
                     start_date=date(2023, 1, 15), end_date=date(2024, 1, 15)),
-            Contract(contract_number="DOG-2023-005", supplier_id=5, 
-                    start_date=date(2023, 1, 1), end_date=date(2023, 12, 31)),
-            Contract(contract_number="DOG-2025-001", supplier_id=5,
-                     start_date=date(2025, 1, 1), end_date=date(2025, 12, 31))
+            Contract(contract_number="DOG-2025-005", supplier_id=5,
+                    start_date=date(2025, 1, 1), end_date=date(2025, 12, 31))
         ]
         
         for contract in contracts:
@@ -232,7 +230,6 @@ def init_database():
             ContractProduct(contract_id=3, product_id=5, quantity_per_delivery=12, purchase_price=Decimal("300.00")),
             ContractProduct(contract_id=4, product_id=6, quantity_per_delivery=3, purchase_price=Decimal("700.00")),
             ContractProduct(contract_id=5, product_id=7, quantity_per_delivery=50, purchase_price=Decimal("12.00")),
-            ContractProduct(contract_id=5, product_id=8, quantity_per_delivery=20, purchase_price=Decimal("35.00")),
             ContractProduct(contract_id=5, product_id=9, quantity_per_delivery=25, purchase_price=Decimal("95.00"))
         ]
         
@@ -299,7 +296,8 @@ def init_database():
             (date(2023, 9, 1), 1, [(1, 10, Decimal("350.00")), (2, 8, Decimal("420.00"))]),
             (date(2023, 9, 5), 2, [(3, 15, Decimal("220.00"))]),
             (date(2023, 9, 10), 3, [(5, 12, Decimal("300.00"))]),
-            (date(2023, 9, 15), 5, [(7, 50, Decimal("12.00")), (8, 20, Decimal("35.00"))])
+            (date(2023, 9, 15), 4, [(6, 50, Decimal("12.00"))]),
+            (date(2025, 8, 22), 5, [(7, 24, Decimal("35.00")), (9, 30, Decimal("120.00"))])
         ]
         
         for delivery_date, contract_id, items in deliveries_data:

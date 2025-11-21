@@ -54,18 +54,36 @@
     <div class="col-md-4 mb-4">
         <div class="card h-100">
             <div class="card-header">
-                <i class="fas fa-book-open"></i> Товари
+                <i class="fas fa-dolly"></i> Поставки
             </div>
             <div class="card-body">
-                <h5 class="card-title">Продукція</h5>
-                <p class="card-text">Каталог книжок, газет, журналів, календарів та настільних ігор.</p>
-                <a href="{{ url_for('products') }}" class="btn btn-primary">Переглянути</a>
+                <h5 class="card-title">Облік поставок</h5>
+                <p class="card-text">Управління поставками товарів за договорами: реєстрація партій,
+                контроль кількості та вартості.</p>
+                {% if current_user.is_authorized_user() %}
+                <a href="{{ url_for('deliveries') }}" class="btn btn-primary">Переглянути</a>
+                {% else %}
+                <span class="text-muted">Недостатньо прав доступу</span>
+                {% endif %}
+            </div>
         </div>
     </div>
-</div>
 
 <div class="row">
-    <div class="col-md-6 mb-4">
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <i class="fas fa-book-open"></i> Товари
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">Продукція</h5>
+                    <p class="card-text">Каталог книжок, газет, журналів, календарів та настільних ігор.</p>
+                    <a href="{{ url_for('products') }}" class="btn btn-primary">Переглянути</a>
+                </div>
+            </div>
+        </div>
+
+    <div class="col-md-4 mb-4">
         <div class="card h-100">
             <div class="card-header">
                 <i class="fas fa-cash-register"></i> Продажі
@@ -82,7 +100,8 @@
         </div>
     </div>
 
-    <div class="col-md-6 mb-4">
+
+    <div class="col-md-4 mb-4">
         <div class="card h-100">
             <div class="card-header">
                 <i class="fas fa-chart-bar"></i> Аналітика
@@ -102,7 +121,7 @@
 
 {% if current_user.is_administrator() %}
 <div class="row">
-    <div class="col-md-6 mb-4">
+    <div class="col-md-12 mb-4">
         <div class="card h-100 border-warning">
             <div class="card-header bg-warning">
                 <i class="fas fa-user-cog"></i> Адміністрування

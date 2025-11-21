@@ -235,8 +235,7 @@ class Delivery(db.Model):
     contract_id = db.Column(db.Integer, db.ForeignKey('contracts.id'), nullable=False)
     delivery_date = db.Column(db.Date, nullable=False, default=date.today)
     total_amount = db.Column(db.Numeric(10, 2), default=0)
-    notes = db.Column(db.Text)
-    
+
     # Relationships
     delivery_items = db.relationship('DeliveryItem', backref='delivery', lazy=True)
     

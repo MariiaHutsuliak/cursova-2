@@ -1,3 +1,4 @@
+from decimal import Decimal
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from models import db, Employee, Department, Supplier, Contract, Product, ProductCategory, Sale, SaleItem, WorkSchedule, Delivery, DeliveryItem, ContractProduct, User, UserRequest
@@ -7,15 +8,18 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from flask_moment import Moment
 from functools import wraps
 from history_utils import add_history_entry, load_history
-
+import os
+from dotenv import load_dotenv
+load_dotenv()
 app = Flask(__name__)
-app.config['SECRET_KEY'] = '123'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://postgres:12345@localhost:5432/bookstore'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_pre_ping': True,
-    'pool_recycle': 300,
+    'pool_recycle': int(os.getenv('POOL_RECYCLE', 300)),
 }
+
 
 # Initialize extensions
 db.init_app(app)
@@ -778,16 +782,20 @@ def edit_contract(contract_id):
     contract = Contract.query.get_or_404(contract_id)
     supplier = contract.supplier
 
-    if request.method == 'POST':
+    expired = contract.end_date < date.today()
+    # ----- ОНОВЛЕННЯ САМЕ договору -----
+    if request.method == 'POST' and 'contract_number' in request.form:
         contract.contract_number = request.form['contract_number']
         contract.start_date = datetime.strptime(request.form['start_date'], '%Y-%m-%d').date()
         contract.end_date = datetime.strptime(request.form['end_date'], '%Y-%m-%d').date()
         db.session.commit()
 
         flash("Договір оновлено.", "success")
-        return redirect(url_for('edit_supplier', supplier_id=supplier.id))
+        return redirect(url_for('edit_contract', contract_id=contract.id))
 
-    return render_template('edit_contract.html', supplier=supplier, contract=contract, today=date.today())
+    products = Product.query.all()
+    return render_template('edit_contract.html', supplier=supplier, contract=contract, products=products, today=date.today(), expired=expired)
+
 
 
 @app.route('/contracts/delete/<int:contract_id>')
@@ -804,6 +812,201 @@ def delete_contract(contract_id):
 
     flash("Договір видалено.", "success")
     return redirect(url_for('edit_supplier', supplier_id=contract.supplier_id))
+
+@app.route('/contracts/<int:contract_id>/product/add', methods=['POST'])
+@requires_operator_or_admin
+def add_contract_product(contract_id):
+    product_id = int(request.form['product_id'])
+    quantity_per_delivery = int(request.form['quantity_per_delivery'])
+    purchase_price = Decimal(request.form['purchase_price'])
+
+    new_cp = ContractProduct(
+        contract_id=contract_id,
+        product_id=product_id,
+        quantity_per_delivery=quantity_per_delivery,
+        purchase_price=purchase_price
+    )
+
+    db.session.add(new_cp)
+    db.session.commit()
+
+    flash("Товар додано до договору.", "success")
+    return redirect(url_for('edit_contract', contract_id=contract_id))
+
+
+@app.route('/contract_product/delete/<int:cp_id>')
+def delete_contract_product(cp_id):
+    cp = ContractProduct.query.get_or_404(cp_id)
+    contract_id = cp.contract_id
+
+    db.session.delete(cp)
+    db.session.commit()
+
+    flash("Товар видалено з договору.", "success")
+    return redirect(url_for('edit_contract', contract_id=contract_id))
+
+@app.route('/deliveries')
+def deliveries():
+    deliveries = Delivery.query.order_by(Delivery.delivery_date.desc()).all()
+    return render_template("deliveries.html", deliveries=deliveries)
+
+@app.route('/deliveries/add', methods=['GET', 'POST'])
+@requires_operator_or_admin
+def add_delivery():
+    today = date.today()
+
+    # Договори, які ще діють
+    contracts = Contract.query.filter(
+        Contract.is_deleted == False,
+        Contract.start_date <= today,
+        Contract.end_date >= today
+    ).all()
+
+    # ---------------- GET ----------------
+    selected_contract_id = request.args.get("contract_id", type=int)
+    contract_products = []
+
+    if selected_contract_id:
+        contract = Contract.query.get(selected_contract_id)
+        if contract:
+            contract_products = ContractProduct.query.filter_by(contract_id=selected_contract_id).all()
+
+    if request.method == 'GET':
+        return render_template(
+            "add_delivery.html",
+            contracts=contracts,
+            contract_products=contract_products,
+            selected_contract_id=selected_contract_id
+        )
+
+    # ---------------- POST ----------------
+    contract_id = request.form.get('contract_id', type=int)
+
+    if not contract_id:
+        flash("Оберіть договір.", "danger")
+        return redirect(url_for('add_delivery'))
+
+    delivery = Delivery(
+        contract_id=contract_id,
+        delivery_date=date.today(),
+        total_amount=0
+    )
+    db.session.add(delivery)
+    db.session.flush()   # отримуємо delivery.id
+
+    product_ids = request.form.getlist('product_id')
+    quantities = request.form.getlist('quantity')
+
+    total_amount = 0
+    items_added = 0
+
+    for pid, qty_raw in zip(product_ids, quantities):
+
+        if not qty_raw or int(qty_raw) <= 0:
+            continue
+
+        product = Product.query.get(int(pid))
+        qty = int(qty_raw)
+
+        unit_price = product.price
+        total_price = unit_price * qty
+
+        db.session.add(DeliveryItem(
+            delivery_id=delivery.id,
+            product_id=product.id,
+            quantity=qty,
+            unit_price=unit_price,
+            total_price=total_price
+        ))
+
+        product.stock_quantity += qty
+        total_amount += total_price
+        items_added += 1
+
+    if items_added == 0:
+        db.session.rollback()
+        flash("Поставка повинна містити хоча б один товар.", "danger")
+        return redirect(url_for('add_delivery', contract_id=contract_id))
+
+    delivery.total_amount = total_amount
+    db.session.commit()
+
+    flash("Поставка створена успішно.", "success")
+    return redirect(url_for('deliveries'))
+
+
+@app.route('/deliveries/edit/<int:delivery_id>', methods=['GET', 'POST'])
+@requires_operator_or_admin
+def edit_delivery(delivery_id):
+    delivery = Delivery.query.get_or_404(delivery_id)
+
+    old_items = {item.product_id: item.quantity for item in delivery.delivery_items}
+
+    if request.method == 'POST':
+        new_items = {}
+
+        # зчитуємо нові кількості
+        for key in request.form:
+            if key.startswith('quantity_'):
+                product_id = int(key.split('_')[1])
+                qty = int(request.form[key])
+                if qty > 0:
+                    new_items[product_id] = qty
+
+        # повертаємо старий сток
+        for pid, old_qty in old_items.items():
+            product = Product.query.get(pid)
+            product.stock_quantity -= old_qty
+
+        db.session.flush()
+
+        # очищаємо старі записи
+        DeliveryItem.query.filter_by(delivery_id=delivery.id).delete()
+
+        # додаємо нові
+        for pid, qty in new_items.items():
+            product = Product.query.get(pid)
+
+            # шукаємо закупівельну ціну з ContractProduct
+            cp = ContractProduct.query.filter_by(
+                contract_id=delivery.contract_id,
+                product_id=pid
+            ).first()
+
+            unit_price = cp.purchase_price if cp else product.price
+
+            product.stock_quantity += qty
+
+            db.session.add(DeliveryItem(
+                delivery_id=delivery.id,
+                product_id=pid,
+                quantity=qty,
+                unit_price=unit_price,
+                total_price=unit_price * qty
+            ))
+
+        db.session.commit()
+        flash("Поставка оновлена!", "success")
+        return redirect(url_for("deliveries"))
+
+    return render_template("edit_delivery.html", delivery=delivery)
+
+@app.route('/deliveries/delete/<int:delivery_id>')
+@requires_operator_or_admin
+def delete_delivery(delivery_id):
+    delivery = Delivery.query.get_or_404(delivery_id)
+
+    # повертаємо кількість назад
+    for item in delivery.delivery_items:
+        product = Product.query.get(item.product_id)
+        product.stock_quantity -= item.quantity
+
+    DeliveryItem.query.filter_by(delivery_id=delivery.id).delete()
+    db.session.delete(delivery)
+    db.session.commit()
+
+    flash("Поставка видалена.", "success")
+    return redirect(url_for('deliveries'))
 
 @app.route('/reports')
 @requires_authorized_or_above
