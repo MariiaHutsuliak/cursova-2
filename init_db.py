@@ -4,14 +4,10 @@ from datetime import datetime, date, time, timedelta
 from decimal import Decimal
 
 def init_database():
-    """Ініціалізація бази даних з тестовими даними"""
-
     with app.app_context():
-        # Створення таблиць
         db.drop_all()
         db.create_all()
 
-        # Створення адміністратора системи
         admin_user = User(
             username="admin",
             email="admin@bookstore.ua",
@@ -29,7 +25,6 @@ def init_database():
         print("Роль: administrator")
         print("-" * 50)
 
-        # Створення оператора для тестування
         operator_user = User(
             username="operator",
             email="operator@bookstore.ua",
@@ -47,7 +42,6 @@ def init_database():
         print("Роль: operator")
         print("-" * 50)
 
-        # Створення авторизованого користувача для тестування
         auth_user = User(
             username="user",
             email="user@bookstore.ua",
@@ -65,7 +59,6 @@ def init_database():
         print("Роль: authorized_user")
         print("-" * 50)
 
-        # Створення відділів
         departments = [
             Department(name="Комп'ютерна література", description="Книги з програмування та IT"),
             Department(name="Детективи", description="Детективні романи та трилери"),
@@ -78,8 +71,7 @@ def init_database():
         for dept in departments:
             db.session.add(dept)
         db.session.commit()
-        
-        # Створення категорій продукції
+
         categories = [
             ProductCategory(name="Комп'ютерна література", description="Книги з програмування, веб-розробки, ІТ"),
             ProductCategory(name="Детективи", description="Детективні романи, трилери, містика"),
@@ -94,8 +86,7 @@ def init_database():
         for cat in categories:
             db.session.add(cat)
         db.session.commit()
-        
-        # Створення співробітників
+
         employees = [
             Employee(first_name="Олена", last_name="Іваненко", position="керівник відділу", 
                     phone="+380501234567", email="olena.ivanenko@bookstore.ua", 
@@ -120,8 +111,7 @@ def init_database():
         for emp in employees:
             db.session.add(emp)
         db.session.commit()
-        
-        # Створення постачальників
+
         suppliers = [
             Supplier(name="Видавництво 'Техніка'", contact_person="Іван Технічний", 
                     phone="+380441234567", email="info@technika.ua", 
@@ -143,8 +133,7 @@ def init_database():
         for supplier in suppliers:
             db.session.add(supplier)
         db.session.commit()
-        
-        # Створення договорів
+
         contracts = [
             Contract(contract_number="DOG-2023-001", supplier_id=1, 
                     start_date=date(2023, 1, 1), end_date=date(2023, 12, 31)),
@@ -161,10 +150,8 @@ def init_database():
         for contract in contracts:
             db.session.add(contract)
         db.session.commit()
-        
-        # Створення продукції
+
         products = [
-            # Комп'ютерна література
             Product(name="Python для початківців", author="Іван Програміст", 
                    isbn="978-966-1234-56-7", publisher="Техніка", 
                    publication_date=date(2023, 1, 15), price=Decimal("450.00"), 
@@ -173,8 +160,7 @@ def init_database():
                    isbn="978-966-2345-67-8", publisher="Техніка", 
                    publication_date=date(2023, 2, 20), price=Decimal("520.00"), 
                    stock_quantity=18, category_id=1, department_id=1),
-            
-            # Детективи
+
             Product(name="Вбивство в орієнт-експресі", author="Агата Крісті", 
                    isbn="978-966-3456-78-9", publisher="Детектив-Прес", 
                    publication_date=date(2022, 11, 10), price=Decimal("280.00"), 
@@ -183,35 +169,29 @@ def init_database():
                    isbn="978-966-4567-89-0", publisher="Детектив-Прес", 
                    publication_date=date(2023, 1, 5), price=Decimal("650.00"), 
                    stock_quantity=12, category_id=2, department_id=2),
-            
-            # Дитяча література
+
             Product(name="Гаррі Поттер і філософський камінь", author="Дж.К. Роулінг", 
                    isbn="978-966-5678-90-1", publisher="Казка", 
                    publication_date=date(2022, 12, 1), price=Decimal("380.00"), 
                    stock_quantity=28, category_id=3, department_id=3),
-            
-            # Медична література
+
             Product(name="Анатомія людини", author="Проф. Медичний", 
                    isbn="978-966-6789-01-2", publisher="Здоров'я", 
                    publication_date=date(2023, 3, 1), price=Decimal("850.00"), 
                    stock_quantity=8, category_id=4, department_id=4),
-            
-            # Газети
+
             Product(name="Українська правда (щоденна)", publisher="Преса України", 
                    publication_date=date.today(), price=Decimal("15.00"), 
                    stock_quantity=100, category_id=5, department_id=5),
-            
-            # Журнали
+
             Product(name="Комп'ютерний світ", publisher="Преса України", 
                    publication_date=date(2023, 9, 1), price=Decimal("45.00"), 
                    stock_quantity=50, category_id=6, department_id=5),
-            
-            # Календарі
+
             Product(name="Календар настінний 2024", publisher="Преса України", 
                    publication_date=date(2023, 10, 1), price=Decimal("120.00"), 
                    stock_quantity=75, category_id=7, department_id=5),
-            
-            # Настільні ігри
+
             Product(name="Монополія", publisher="Ігри для всіх", 
                    publication_date=date(2023, 5, 1), price=Decimal("890.00"), 
                    stock_quantity=15, category_id=8, department_id=6)
@@ -220,8 +200,7 @@ def init_database():
         for product in products:
             db.session.add(product)
         db.session.commit()
-        
-        # Створення зв'язків договір-продукція
+
         contract_products = [
             ContractProduct(contract_id=1, product_id=1, quantity_per_delivery=10, purchase_price=Decimal("350.00")),
             ContractProduct(contract_id=1, product_id=2, quantity_per_delivery=8, purchase_price=Decimal("420.00")),
@@ -236,10 +215,9 @@ def init_database():
         for cp in contract_products:
             db.session.add(cp)
         db.session.commit()
-        
-        # Створення графіків роботи
+
         today = date.today()
-        for i in range(7):  # На тиждень вперед
+        for i in range(7):
             work_date = today + timedelta(days=i)
             schedules = [
                 WorkSchedule(employee_id=1, department_id=1, work_date=work_date, 
@@ -259,19 +237,16 @@ def init_database():
         
         db.session.commit()
         
-        # Створення тестових продажів
+
         sales_data = [
-            # Продажі за сьогодні
             (today, 1, [(1, 2, Decimal("450.00")), (3, 1, Decimal("280.00"))]),
             (today, 2, [(2, 1, Decimal("520.00"))]),
             (today, 3, [(5, 3, Decimal("380.00")), (7, 5, Decimal("15.00"))]),
-            
-            # Продажі за вчора
+
             (today - timedelta(days=1), 1, [(4, 1, Decimal("650.00"))]),
             (today - timedelta(days=1), 2, [(1, 1, Decimal("450.00")), (8, 2, Decimal("45.00"))]),
             (today - timedelta(days=1), 6, [(6, 1, Decimal("850.00"))]),
-            
-            # Продажі за позавчора
+
             (today - timedelta(days=2), 3, [(9, 3, Decimal("120.00"))]),
             (today - timedelta(days=2), 4, [(3, 2, Decimal("280.00")), (5, 1, Decimal("380.00"))]),
         ]
@@ -290,8 +265,7 @@ def init_database():
                 db.session.add(sale_item)
         
         db.session.commit()
-        
-        # Створення поставок
+
         deliveries_data = [
             (date(2023, 9, 1), 1, [(1, 10, Decimal("350.00")), (2, 8, Decimal("420.00"))]),
             (date(2023, 9, 5), 2, [(3, 15, Decimal("220.00"))]),

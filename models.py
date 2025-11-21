@@ -1,8 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, date
-from sqlalchemy import func
 from flask_login import UserMixin
-from sqlalchemy.sql.functions import current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 
 db = SQLAlchemy()
@@ -41,39 +39,30 @@ class User(db.Model, UserMixin):
         return self.role == 'administrator'
 
     def can_view_products(self):
-        """Guest: View products"""
         return self.role in ['guest', 'authorized_user', 'operator', 'administrator']
 
     def can_send_requests(self):
-        """Guest: Send applications"""
         return self.role == 'guest' or not self.is_authenticated
 
     def can_run_queries(self):
-        """Authorized user: Can perform data search and built-in queries"""
         return self.role in ['authorized_user', 'operator', 'administrator']
 
     def can_create_queries(self):
-        """Operator: Can form new queries/aggregations"""
         return self.role in ['operator', 'administrator']
 
     def can_manage_employees(self):
-        """Operator: Add, view, edit, delete employees"""
         return self.role in ['operator', 'administrator']
 
     def can_manage_suppliers(self):
-        """Operator: Add, view, edit, delete suppliers"""
         return self.role in ['operator', 'administrator']
 
     def can_manage_products(self):
-        """Operator: Add, view, edit, delete products"""
         return self.role in ['operator', 'administrator']
 
     def can_manage_users(self):
-        """Admin: Create operators"""
         return self.role == 'administrator'
 
     def can_manage_requests(self):
-        """Admin: Accept/reject applications"""
         return self.role == 'administrator'
 
     def __repr__(self):
@@ -88,11 +77,10 @@ class UserRequest(db.Model):
     phone = db.Column(db.String(20))
     password_hash = db.Column(db.String(256), nullable=False)
     request_date = db.Column(db.DateTime, default=datetime.utcnow)
-    status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
+    status = db.Column(db.String(20), default='pending')
     reviewed_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     reviewed_at = db.Column(db.DateTime)
 
-    # Relationship
     reviewer = db.relationship('User', backref='reviewed_requests')
 
     def __repr__(self):
@@ -107,8 +95,7 @@ class Department(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, unique=True)
     description = db.Column(db.Text)
-    
-    # Relationships
+
     employees = db.relationship('Employee', backref='department', lazy=True)
     work_schedules = db.relationship('WorkSchedule', backref='department', lazy=True)
     
@@ -121,7 +108,7 @@ class Employee(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
-    position = db.Column(db.String(50), nullable=False)  # касир, продавець-консультант, керівник відділу
+    position = db.Column(db.String(50), nullable=False)
     phone = db.Column(db.String(20))
     email = db.Column(db.String(100))
     hire_date = db.Column(db.Date, nullable=False, default=date.today)
@@ -129,7 +116,6 @@ class Employee(db.Model):
     department_id = db.Column(db.Integer, db.ForeignKey('departments.id'), nullable=False)
     is_deleted = db.Column(db.Boolean, default=False)
 
-    # Relationships
     work_schedules = db.relationship('WorkSchedule', backref='employee', lazy=True)
     sales = db.relationship('Sale', backref='employee', lazy=True)
     
@@ -186,8 +172,7 @@ class ProductCategory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, unique=True)
     description = db.Column(db.Text)
-    
-    # Relationships
+
     products = db.relationship('Product', backref='category', lazy=True)
     
     def __repr__(self):
@@ -198,8 +183,8 @@ class Product(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
-    author = db.Column(db.String(100))  # для книг
-    isbn = db.Column(db.String(20))  # для книг
+    author = db.Column(db.String(100))
+    isbn = db.Column(db.String(20))
     publisher = db.Column(db.String(100))
     publication_date = db.Column(db.Date)
     price = db.Column(db.Numeric(10, 2), nullable=False)
@@ -236,7 +221,6 @@ class Delivery(db.Model):
     delivery_date = db.Column(db.Date, nullable=False, default=date.today)
     total_amount = db.Column(db.Numeric(10, 2), default=0)
 
-    # Relationships
     delivery_items = db.relationship('DeliveryItem', backref='delivery', lazy=True)
     
     def __repr__(self):
@@ -276,8 +260,7 @@ class Sale(db.Model):
     sale_date = db.Column(db.Date, nullable=False, default=date.today)
     sale_time = db.Column(db.Time, nullable=False, default=datetime.now().time)
     total_amount = db.Column(db.Numeric(10, 2), nullable=False)
-    
-    # Relationships
+
     sale_items = db.relationship('SaleItem', backref='sale', lazy=True)
     
     def __repr__(self):

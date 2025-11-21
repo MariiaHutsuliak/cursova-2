@@ -4,16 +4,9 @@ from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 
 class BookstoreQueries:
-    """
-    Клас для виконання всіх запитів згідно з вимогами завдання
-    """
     
     @staticmethod
     def query_1_employees_info(department_name=None, managers_only=False, on_vacation_only=False):
-        """
-        1) Вивести інформацію про співробітників всіх відділів, конкретного відділу; 
-        співробітників, які займають керівні посади, які знаходяться в декретній відпустці.
-        """
         query = db.session.query(Employee).join(Department)
         
         if department_name:
@@ -29,12 +22,7 @@ class BookstoreQueries:
     
     @staticmethod
     def query_2_revenue_analysis(start_date=None, end_date=None, category_name=None):
-        """
-        2) Одержати загальну суму виторгу (чистий прибуток) із продаж друкованої продукції 
-        по магазину за місяць; за окремими видами друкованої продукції за місяць.
-        """
         if not start_date:
-            # За поточний місяць
             today = date.today()
             start_date = date(today.year, today.month, 1)
             if today.month == 12:
@@ -58,11 +46,6 @@ class BookstoreQueries:
 
     @staticmethod
     def query_3_contracts_by_period(period_type='month'):
-        """
-        3) Отримати інформацію про договори на постачання різних видів друкованої продукції
-        за тиждень, за місяць, за квартал, за рік.
-        """
-
         today = date.today()
 
         if period_type == 'week':
@@ -82,7 +65,6 @@ class BookstoreQueries:
             start_date = date(today.year, 1, 1)
             end_date = date(today.year, 12, 31)
 
-        # Тільки договори, укладені в цей період
         query = db.session.query(Contract).filter(
             Contract.start_date.between(start_date, end_date)
         )
@@ -91,9 +73,6 @@ class BookstoreQueries:
 
     @staticmethod
     def query_4_suppliers_without_board_games():
-        """
-        4) Отримати інформацію про постачальників, які не постачали жодної настільної гри.
-        """
         board_games_category = db.session.query(ProductCategory).filter(
             ProductCategory.name.like('%настільн%')
         ).first()
@@ -115,10 +94,6 @@ class BookstoreQueries:
     
     @staticmethod
     def query_5_top_sellers(min_amount=200, period_type='day', target_date=None):
-        """
-        5) Отримати інформацію про продавців, які за один день продали товар на суму, 
-        більшу за 200 грн.; за загальною кількістю продаж за день, за неділю, за місяць.
-        """
         if not target_date:
             target_date = date.today()
         
@@ -146,10 +121,6 @@ class BookstoreQueries:
 
     @staticmethod
     def query_6_sales_info(target_date=None, month=None, category_name=None, supplier_name=None):
-        """
-        6) Продажі за днем, місяцем, категорією, постачальником.
-        """
-
         query = (
             db.session.query(Sale, SaleItem, Product, ProductCategory)
             .join(SaleItem, SaleItem.sale_id == Sale.id)
@@ -157,19 +128,15 @@ class BookstoreQueries:
             .join(ProductCategory, ProductCategory.id == Product.category_id)
         )
 
-        # Фільтр за днем (date)
         if target_date:
             query = query.filter(Sale.sale_date == target_date)
 
-        # Фільтр за місяцем (month)
         if month:
             query = query.filter(extract('month', Sale.sale_date) == month)
 
-        # Фільтр за категорією
         if category_name:
             query = query.filter(ProductCategory.name == category_name)
 
-        # Фільтр за постачальником
         if supplier_name:
             query = (
                 query.join(ContractProduct, ContractProduct.product_id == Product.id)
@@ -205,9 +172,6 @@ class BookstoreQueries:
 
     @staticmethod
     def query_8_supplier_by_contract(contract_number):
-        """
-        8) Отримати повну інформацію про постачальника продукції за номером договору.
-        """
         result = db.session.query(Supplier, Contract).join(Contract).filter(
             Contract.contract_number == contract_number
         ).first()
@@ -216,9 +180,6 @@ class BookstoreQueries:
     
     @staticmethod
     def query_9_supplier_product_value(supplier_name, target_date=None):
-        """
-        9) Підрахувати вартість продукції, яку надав визначений постачальник на поточну дату.
-        """
         if not target_date:
             target_date = date.today()
         
@@ -236,18 +197,12 @@ class BookstoreQueries:
 
     @staticmethod
     def query_10_weekly_sales_analysis(from_date=None):
-        """
-        10) Підрахувати загальну вартість продукції, проданої за останній тиждень (від поточної дати);
-        за різними видами друкованої продукції за останній тиждень (від поточної дати).
-        """
-
         if not from_date:
             from_date = date.today()
 
         start_date = from_date - timedelta(days=7)
         end_date = from_date
 
-        # Загальна вартість
         total_query = (
             db.session.query(func.sum(SaleItem.total_price).label('total_sales'))
             .select_from(SaleItem)
@@ -258,7 +213,6 @@ class BookstoreQueries:
         total_result = total_query.first()
         total_sales = total_result.total_sales if total_result.total_sales else 0
 
-        # Вартість за категоріями
         category_query = (
             db.session.query(
                 ProductCategory.name,

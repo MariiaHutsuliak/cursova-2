@@ -36,7 +36,6 @@
     </div>
     {% endif %}
 
-    <!-- Запит 1: Інформація про співробітників -->
     <div class="col-lg-6 mb-4">
         <div class="card query-card">
             <div class="card-header">
@@ -63,7 +62,6 @@
         </div>
     </div>
 
-    <!-- Запит 2: Аналіз виторгу -->
     <div class="col-lg-6 mb-4">
         <div class="card query-card">
             <div class="card-header">
@@ -90,7 +88,6 @@
         </div>
     </div>
 
-    <!-- Запит 3: Договори за періодом -->
     <div class="col-lg-6 mb-4">
         <div class="card query-card">
             <div class="card-header">
@@ -114,7 +111,6 @@
         </div>
     </div>
 
-    <!-- Запит 4: Постачальники без настільних ігор -->
     <div class="col-lg-6 mb-4">
         <div class="card query-card">
             <div class="card-header">
@@ -127,7 +123,6 @@
         </div>
     </div>
 
-    <!-- Запит 5: Продажі продавців -->
     <div class="col-lg-6 mb-4">
         <div class="card query-card">
             <div class="card-header">
@@ -158,7 +153,6 @@
         </div>
     </div>
 
-    <!-- Запит 6: Інформація про продажі -->
     <div class="col-lg-6 mb-4">
         <div class="card query-card">
             <div class="card-header">
@@ -167,25 +161,21 @@
             <div class="card-body">
             <form id="query6-form">
 
-                <!-- Конкретна дата -->
                 <div class="mb-3">
                     <label for="q6-target-date" class="form-label">Конкретна дата:</label>
                     <input type="date" class="form-control" id="q6-target-date">
                 </div>
 
-                <!-- Місяць -->
                 <div class="mb-3">
                     <label for="q6-month" class="form-label">Або місяць (1–12):</label>
                     <input type="number" class="form-control" id="q6-month" min="1" max="12">
                 </div>
 
-                <!-- Категорія -->
                 <div class="mb-3">
                     <label for="q6-category" class="form-label">Категорія (необов'язково):</label>
                     <input type="text" class="form-control" id="q6-category" placeholder="Наприклад: Детективи">
                 </div>
 
-                <!-- Постачальник -->
                 <div class="mb-3">
                     <label for="q6-supplier" class="form-label">Постачальник (необов'язково):</label>
                     <input type="text" class="form-control" id="q6-supplier" placeholder="Назва постачальника">
@@ -198,7 +188,6 @@
         </div>
     </div>
 
-    <!-- Запит 7: Кількість співробітників за день -->
     <div class="col-lg-6 mb-4">
         <div class="card query-card">
             <div class="card-header">
@@ -221,7 +210,6 @@
         </div>
     </div>
 
-    <!-- Запит 8: Постачальник за номером договору -->
     <div class="col-lg-6 mb-4">
         <div class="card query-card">
             <div class="card-header">
@@ -240,7 +228,6 @@
         </div>
     </div>
 
-    <!-- Запит 9: Вартість продукції від постачальника -->
     <div class="col-lg-6 mb-4">
         <div class="card query-card">
             <div class="card-header">
@@ -263,7 +250,6 @@
         </div>
     </div>
 
-    <!-- Запит 10: Продажі за тиждень -->
     <div class="col-lg-6 mb-4">
         <div class="card query-card">
             <div class="card-header">
@@ -295,11 +281,9 @@
 {% block scripts %}
 <script>
 $(document).ready(function() {
-    // Встановити поточну дату за замовчуванням
     const today = new Date().toISOString().split('T')[0];
     $('input[type="date"]').val(today);
 
-    // Запит 1: Інформація про співробітників
     $('#query1-form').submit(function(e) {
         e.preventDefault();
         const params = {
@@ -330,7 +314,6 @@ $(document).ready(function() {
         });
     });
 
-    // Запит 2: Аналіз виторгу
     $('#query2-form').submit(function(e) {
         e.preventDefault();
         const params = {
@@ -350,7 +333,6 @@ $(document).ready(function() {
         });
     });
 
-    // Запит 3: Договори за періодом
     $('#query3-form').submit(function(e) {
         e.preventDefault();
         const params = {
@@ -378,7 +360,6 @@ $(document).ready(function() {
         });
     });
 
-    // Запит 4: Постачальники без настільних ігор
     $('#query4-btn').click(function() {
         $.get('/api/query4', function(data) {
             let html = '<h6>Результати:</h6>';
@@ -400,7 +381,6 @@ $(document).ready(function() {
         });
     });
 
-    // Запит 5: Продажі продавців
     $('#query5-form').submit(function(e) {
         e.preventDefault();
         const params = {
@@ -441,7 +421,7 @@ $(document).ready(function() {
             $('#q6-target-date').val('');
         }
     });
-    // Запит 6: Інформація про продажі
+
     $('#query6-form').submit(function(e) {
         e.preventDefault();
         const params = {
@@ -491,7 +471,6 @@ $(document).ready(function() {
         });
     });
 
-    // Запит 7: Співробітники за день
 $('#query7-form').submit(function(e) {
     e.preventDefault();
 
@@ -547,7 +526,6 @@ $('#query7-form').submit(function(e) {
         });
     });
 
-    // Запит 8: Постачальник за договором
     $('#query8-form').submit(function(e) {
         e.preventDefault();
         const params = {
@@ -575,7 +553,6 @@ $('#query7-form').submit(function(e) {
         });
     });
 
-    // Запит 9: Вартість від постачальника
     $('#query9-form').submit(function(e) {
         e.preventDefault();
         const params = {
@@ -594,7 +571,6 @@ $('#query7-form').submit(function(e) {
         });
     });
 
-    // Запит 10: Продажі за останній тиждень
     $('#query10-form').submit(function(e) {
         e.preventDefault();
         const params = {
@@ -638,7 +614,7 @@ $('#query7-form').submit(function(e) {
             $('#query10-result').html('<div class="alert alert-danger">Помилка при виконанні запиту</div>');
         });
     });
-    // Кастомний SQL-запит
+
     $('#custom-sql-form').submit(function (e) {
         e.preventDefault();
 
@@ -660,14 +636,12 @@ $('#query7-form').submit(function(e) {
             else {
                 html += '<div class="table-responsive"><table class="table table-sm table-striped"><thead><tr>';
 
-                // Заголовки
                 Object.keys(data.rows[0]).forEach(col => {
                     html += `<th>${col}</th>`;
                 });
 
                 html += '</tr></thead><tbody>';
 
-                // Дані
                 data.rows.forEach(row => {
                     html += '<tr>';
                     Object.values(row).forEach(val => {

@@ -1,6 +1,5 @@
 from decimal import Decimal
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
-from flask_sqlalchemy import SQLAlchemy
 from models import db, Employee, Department, Supplier, Contract, Product, ProductCategory, Sale, SaleItem, WorkSchedule, Delivery, DeliveryItem, ContractProduct, User, UserRequest
 from queries import BookstoreQueries
 from datetime import datetime, date, timedelta
@@ -21,7 +20,6 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 }
 
 
-# Initialize extensions
 db.init_app(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -59,7 +57,6 @@ def requires_any_auth(f):
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Сторінка входу в систему"""
     if current_user.is_authenticated:
         return redirect(url_for('index'))
 
@@ -85,13 +82,11 @@ def login():
 @app.route('/logout')
 @login_required
 def logout():
-    """Вихід з системи"""
     logout_user()
     return redirect(url_for('login'))
 
 @app.route('/register_request', methods=['GET', 'POST'])
 def register_request():
-    """Форма запиту на реєстрацію для гостей"""
     if current_user.is_authenticated:
         return redirect(url_for('index'))
 
@@ -118,7 +113,6 @@ def register_request():
 @app.route('/admin/user_requests')
 @requires_admin
 def user_requests():
-    """Сторінка заявок на реєстрацію (тільки для адміністраторів)"""
     requests = UserRequest.query.order_by(UserRequest.request_date.desc()).all()
     return render_template('user_requests.html', requests=requests)
 
@@ -131,13 +125,12 @@ def approve_request(request_id):
         flash('Цю заявку вже оброблено.', 'warning')
         return redirect(url_for('user_requests'))
 
-    # створюємо нового користувача зі збереженим паролем
     new_user = User(
         username=user_request.full_name,
         email=user_request.email,
         role='authorized_user'
     )
-    new_user.password_hash = user_request.password_hash  # ← передаємо пароль
+    new_user.password_hash = user_request.password_hash
 
     user_request.status = 'approved'
     user_request.reviewed_by = current_user.id
@@ -153,7 +146,6 @@ def approve_request(request_id):
 @app.route('/admin/reject_request/<int:request_id>')
 @requires_admin
 def reject_request(request_id):
-    """Відхилення заявки на реєстрацію"""
     user_request = UserRequest.query.get_or_404(request_id)
 
     if user_request.status != 'pending':
@@ -172,7 +164,6 @@ def reject_request(request_id):
 @app.route('/admin/users')
 @requires_admin
 def admin_users():
-    """Управління користувачами (тільки для адміністраторів)"""
     users = User.query.all()
     return render_template('admin_users.html', users=users)
 
@@ -185,7 +176,6 @@ def toggle_user(user_id):
         flash("Неможливо змінити статус адміністратора.", "danger")
         return redirect(url_for('admin_users'))
 
-    # toggle
     user.is_active_flag = not user.is_active_flag
     db.session.commit()
 
@@ -199,7 +189,6 @@ def toggle_user(user_id):
 @app.route('/admin/create_operator', methods=['GET', 'POST'])
 @requires_admin
 def create_operator():
-    """Створення оператора (тільки для адміністраторів)"""
     if request.method == 'POST':
         username = request.form.get('username')
         email = request.form.get('email')
@@ -225,28 +214,26 @@ def create_operator():
 
 @app.route('/')
 def index():
-    """Головна сторінка системи"""
     return render_template('index.html')
 
 @app.route('/employees')
 @requires_authorized_or_above
 def employees():
-    """Сторінка управління співробітниками"""
     employees = Employee.query.filter_by(is_deleted=False).all()
     departments = Department.query.all()
-    return render_template('employees.html', employees=employees, departments=departments)
+    work_schedules = WorkSchedule.query.order_by(WorkSchedule.work_date)
+
+    return render_template('employees.html', employees=employees, departments=departments,  work_schedules=work_schedules)
 
 @app.route('/suppliers')
 @requires_authorized_or_above
 def suppliers():
-    """Сторінка управління постачальниками"""
     suppliers = Supplier.query.filter_by(is_deleted=False).all()
     today = date.today()
     return render_template('suppliers.html', suppliers=suppliers, today=today)
 
 @app.route('/products')
 def products():
-    """Сторінка управління продукцією"""
     products = Product.query.filter_by(is_deleted=False).all()
     categories = ProductCategory.query.all()
     return render_template('products.html', products=products, categories=categories)
@@ -254,7 +241,6 @@ def products():
 @app.route('/products/add', methods=['GET', 'POST'])
 @requires_operator_or_admin
 def add_product():
-    """Додати новий товар"""
     categories = ProductCategory.query.all()
     departments = Department.query.all()
 
@@ -315,7 +301,6 @@ def add_product():
 @app.route('/products/edit/<int:product_id>', methods=['GET', 'POST'])
 @requires_operator_or_admin
 def edit_product(product_id):
-    """Редагувати товар"""
     product = Product.query.get_or_404(product_id)
     categories = ProductCategory.query.all()
     departments = Department.query.all()
@@ -384,7 +369,6 @@ def delete_product(product_id):
 @app.route('/sales')
 @requires_authorized_or_above
 def sales():
-    """Сторінка продажів"""
     sales = Sale.query.order_by(Sale.sale_date.desc()).limit(50).all()
     today = date.today()
     return render_template('sales.html', sales=sales, today=today)
@@ -395,11 +379,9 @@ def sales():
 def add_sale():
     employees = Employee.query.filter_by(is_deleted=False).all()
 
-    # ---------------- GET ----------------
     if request.method == 'GET':
         selected_emp_id = request.args.get('employee_id')
 
-        # Нема співробітника — просто форма вибору
         if not selected_emp_id:
             return render_template("add_sale.html",
                                    employees=employees,
@@ -408,7 +390,6 @@ def add_sale():
 
         employee = Employee.query.get(int(selected_emp_id))
 
-        # Завантажуємо товари лише його відділу
         products = Product.query.filter_by(
             department_id=employee.department_id,
             is_deleted=False
@@ -419,7 +400,6 @@ def add_sale():
                                products=products,
                                selected_emp_id=selected_emp_id)
 
-    # ---------------- POST: створення продажу ----------------
     employee_id = int(request.form.get('employee_id'))
     employee = Employee.query.get(employee_id)
 
@@ -427,7 +407,6 @@ def add_sale():
         flash("Невірний співробітник.", "danger")
         return redirect(url_for('add_sale'))
 
-    # Створюємо продаж
     sale = Sale(
         employee_id=employee_id,
         sale_date=date.today(),
@@ -445,7 +424,6 @@ def add_sale():
 
     for pid, qty in zip(product_ids, quantities):
 
-        # Пропускаємо пусті значення
         if not pid or not qty:
             continue
 
@@ -459,13 +437,11 @@ def add_sale():
 
         product = Product.query.get(int(pid))
 
-        # Перевірка відділу
         if product.department_id != employee.department_id:
             db.session.rollback()
             flash("Товар не з відділу співробітника.", "danger")
             return redirect(url_for('add_sale', employee_id=employee_id))
 
-        # 🔥 🔥 🔥 САМЕ ТУТ — ПЕРЕВІРКА СКЛАДУ + СПИСАННЯ 🔥 🔥 🔥
         if quantity > product.stock_quantity:
             db.session.rollback()
             flash(
@@ -474,7 +450,6 @@ def add_sale():
             )
             return redirect(url_for('add_sale', employee_id=employee_id))
 
-        # Списуємо товар зі складу
         product.stock_quantity -= quantity
 
         unit_price = product.price
@@ -511,18 +486,15 @@ def edit_sale(sale_id):
     sale = Sale.query.get_or_404(sale_id)
     employee = sale.employee
 
-    # Товари лише цього відділу
     products = Product.query.filter_by(
         department_id=employee.department_id,
         is_deleted=False
     ).all()
 
-    # Збираємо старі товари
     old_items = {item.product_id: item.quantity for item in sale.sale_items}
 
     if request.method == 'POST':
 
-        # -------- 0. Зчитуємо нові значення кількостей --------
         new_items = {}
         for key in request.form:
             if key.startswith("quantity_"):
@@ -540,24 +512,20 @@ def edit_sale(sale_id):
                 if qty > 0:
                     new_items[product_id] = qty
 
-        # Заборона порожнього продажу
         if len(new_items) == 0:
             flash("Продаж не може бути порожнім. Залиште хоча б один товар.", "danger")
             return redirect(url_for('edit_sale', sale_id=sale.id))
 
-        # -------- 1. Повертаємо старі списання товарів на склад --------
         for pid, old_qty in old_items.items():
             product = Product.query.get(pid)
             product.stock_quantity += old_qty
 
         db.session.flush()
 
-        # -------- 2. Перевіряємо, чи вистачає товару для нових кількостей --------
         for pid, qty in new_items.items():
 
             product = Product.query.get(pid)
 
-            # захист від HTML-модифікації
             if product.department_id != employee.department_id:
                 db.session.rollback()
                 flash("Товар не належить відділу співробітника.", "danger")
@@ -572,12 +540,10 @@ def edit_sale(sale_id):
                 )
                 return redirect(url_for('edit_sale', sale_id=sale.id))
 
-        # -------- 3. Списуємо товар згідно нових значень --------
         for pid, qty in new_items.items():
             product = Product.query.get(pid)
             product.stock_quantity -= qty
 
-        # -------- 4. Оновлюємо записи SaleItem --------
         SaleItem.query.filter_by(sale_id=sale.id).delete()
         db.session.flush()
 
@@ -609,12 +575,10 @@ def edit_sale(sale_id):
 def delete_sale(sale_id):
     sale = Sale.query.get_or_404(sale_id)
 
-    # Повернути всі товари на склад
     for item in sale.sale_items:
         product = Product.query.get(item.product_id)
         product.stock_quantity += item.quantity
 
-    # Видалити записи
     SaleItem.query.filter_by(sale_id=sale_id).delete()
     db.session.delete(sale)
     db.session.commit()
@@ -625,7 +589,6 @@ def delete_sale(sale_id):
 @app.route('/employees/add', methods=['GET', 'POST'])
 @requires_operator_or_admin
 def add_employee():
-    """Додати нового співробітника"""
     if request.method == 'POST':
         first_name = request.form.get('first_name')
         last_name = request.form.get('last_name')
@@ -656,7 +619,6 @@ def add_employee():
 @app.route('/employees/edit/<int:employee_id>', methods=['GET', 'POST'])
 @requires_operator_or_admin
 def edit_employee(employee_id):
-    """Редагувати співробітника"""
     employee = Employee.query.get_or_404(employee_id)
 
     if request.method == 'POST':
@@ -680,18 +642,75 @@ def edit_employee(employee_id):
 def delete_employee(employee_id):
     employee = Employee.query.get_or_404(employee_id)
 
-    # М’яке видалення без будь-яких обмежень
     employee.is_deleted = True
     db.session.commit()
 
     flash(f'Співробітника {employee.full_name} успішно видалено.', 'success')
     return redirect(url_for('employees'))
 
+@app.route('/schedule/add', methods=['GET', 'POST'])
+@requires_operator_or_admin
+def add_schedule():
+    employees = Employee.query.filter_by(is_deleted=False).all()
+    departments = Department.query.all()
+
+    if request.method == 'POST':
+        emp_id = request.form.get('employee_id')
+        work_date = datetime.strptime(request.form.get('work_date'), "%Y-%m-%d").date()
+        start = datetime.strptime(request.form.get('shift_start'), "%H:%M").time()
+        end = datetime.strptime(request.form.get('shift_end'), "%H:%M").time()
+
+        schedule = WorkSchedule(
+            employee_id=emp_id,
+            department_id=int(request.form.get('department_id')),
+            work_date=work_date,
+            shift_start=start,
+            shift_end=end
+        )
+
+        db.session.add(schedule)
+        db.session.commit()
+        flash("Зміну додано.", "success")
+        return redirect(url_for('employees'))
+
+    return render_template("add_schedule.html", employees=employees, departments=departments)
+
+
+@app.route('/schedule/edit/<int:schedule_id>', methods=['GET', 'POST'])
+@requires_operator_or_admin
+def edit_schedule(schedule_id):
+    schedule = WorkSchedule.query.get_or_404(schedule_id)
+    employees = Employee.query.filter_by(is_deleted=False).all()
+    departments = Department.query.all()
+
+    if request.method == 'POST':
+        schedule.employee_id = request.form.get('employee_id')
+        schedule.department_id = request.form.get('department_id')
+        schedule.work_date = datetime.strptime(request.form['work_date'], "%Y-%m-%d").date()
+        schedule.shift_start = datetime.strptime(request.form['shift_start'], "%H:%M").time()
+        schedule.shift_end = datetime.strptime(request.form['shift_end'], "%H:%M").time()
+
+        db.session.commit()
+        flash("Зміну оновлено.", "success")
+        return redirect(url_for('employees'))
+
+    return render_template("edit_schedule.html", schedule=schedule, employees=employees, departments=departments)
+
+@app.route('/schedule/delete/<int:schedule_id>')
+@requires_operator_or_admin
+def delete_schedule(schedule_id):
+    schedule = WorkSchedule.query.get_or_404(schedule_id)
+
+    db.session.delete(schedule)
+    db.session.commit()
+
+    flash("Зміну видалено.", "success")
+    return redirect(url_for('employees'))
+
 
 @app.route('/suppliers/add', methods=['GET', 'POST'])
 @requires_operator_or_admin
 def add_supplier():
-    """Додати нового постачальника"""
     if request.method == 'POST':
         name = request.form.get('name')
         contact_person = request.form.get('contact_person')
@@ -783,7 +802,6 @@ def edit_contract(contract_id):
     supplier = contract.supplier
 
     expired = contract.end_date < date.today()
-    # ----- ОНОВЛЕННЯ САМЕ договору -----
     if request.method == 'POST' and 'contract_number' in request.form:
         contract.contract_number = request.form['contract_number']
         contract.start_date = datetime.strptime(request.form['start_date'], '%Y-%m-%d').date()
@@ -855,14 +873,12 @@ def deliveries():
 def add_delivery():
     today = date.today()
 
-    # Договори, які ще діють
     contracts = Contract.query.filter(
         Contract.is_deleted == False,
         Contract.start_date <= today,
         Contract.end_date >= today
     ).all()
 
-    # ---------------- GET ----------------
     selected_contract_id = request.args.get("contract_id", type=int)
     contract_products = []
 
@@ -879,7 +895,6 @@ def add_delivery():
             selected_contract_id=selected_contract_id
         )
 
-    # ---------------- POST ----------------
     contract_id = request.form.get('contract_id', type=int)
 
     if not contract_id:
@@ -892,7 +907,7 @@ def add_delivery():
         total_amount=0
     )
     db.session.add(delivery)
-    db.session.flush()   # отримуємо delivery.id
+    db.session.flush()
 
     product_ids = request.form.getlist('product_id')
     quantities = request.form.getlist('quantity')
@@ -945,7 +960,6 @@ def edit_delivery(delivery_id):
     if request.method == 'POST':
         new_items = {}
 
-        # зчитуємо нові кількості
         for key in request.form:
             if key.startswith('quantity_'):
                 product_id = int(key.split('_')[1])
@@ -953,21 +967,17 @@ def edit_delivery(delivery_id):
                 if qty > 0:
                     new_items[product_id] = qty
 
-        # повертаємо старий сток
         for pid, old_qty in old_items.items():
             product = Product.query.get(pid)
             product.stock_quantity -= old_qty
 
         db.session.flush()
 
-        # очищаємо старі записи
         DeliveryItem.query.filter_by(delivery_id=delivery.id).delete()
 
-        # додаємо нові
         for pid, qty in new_items.items():
             product = Product.query.get(pid)
 
-            # шукаємо закупівельну ціну з ContractProduct
             cp = ContractProduct.query.filter_by(
                 contract_id=delivery.contract_id,
                 product_id=pid
@@ -996,7 +1006,6 @@ def edit_delivery(delivery_id):
 def delete_delivery(delivery_id):
     delivery = Delivery.query.get_or_404(delivery_id)
 
-    # повертаємо кількість назад
     for item in delivery.delivery_items:
         product = Product.query.get(item.product_id)
         product.stock_quantity -= item.quantity
@@ -1021,7 +1030,6 @@ def reports():
         timedelta=timedelta
     )
 
-# API endpoints для запитів - доступні для авторизованих користувачів і вище
 @app.route('/api/custom-sql', methods=['POST'])
 @requires_operator_or_admin
 def api_custom_sql():
@@ -1038,7 +1046,6 @@ def api_custom_sql():
         result = db.session.execute(sql)
         rows = [dict(row) for row in result]
 
-        # Історія
         add_history_entry(
             current_user.id,
             "Кастомний SQL-запит",
@@ -1059,7 +1066,6 @@ def api_custom_sql():
 
 
 def parse_date(value):
-    """Безпечний парсер дати YYYY-MM-DD. Повертає None, якщо формат порожній або невірний."""
     if not value or value.strip() == "":
         return None
     try:
@@ -1277,8 +1283,6 @@ def api_query6():
         },
         "sales": result
     })
-
-
 
 @app.route('/api/query7')
 @requires_authorized_or_above

@@ -9,14 +9,12 @@
 
     <div class="row">
 
-        <!-- ЛІВА КОЛОНКА — кнопка назад -->
         <div class="col-md-2 d-flex align-items-start mt-2 ">
             <a href="{{ url_for('suppliers') }}" class="btn btn-secondary w-100">
                 <i class="fas fa-arrow-left"></i> Назад
             </a>
         </div>
 
-        <!-- ПРАВА КОЛОНКА — картка по центру -->
         <div class="col-md-8">
 
             <div class="card mt-2 shadow-sm">
@@ -26,7 +24,6 @@
 
                 <div class="card-body">
 
-                    <!-- ФОРМА ОНОВЛЕННЯ ДОГОВОРУ -->
                     <form method="POST" action="{{ url_for('edit_contract', contract_id=contract.id) }}">
 
                         <div class="mb-3">
@@ -61,7 +58,6 @@
 
                     <hr class="my-4">
 
-                    <!-- ТОВАРИ У ДОГОВОРІ -->
                     <h5><i class="fas fa-boxes"></i> Товари за договором</h5>
 
                     <table class="table table-striped mt-3">
@@ -93,7 +89,6 @@
 
                     <hr class="my-4">
 
-                    <!-- ФОРМА ДОДАВАННЯ ТОВАРУ -->
 
                     <h5><i class="fas fa-plus-circle"></i> Додати товар у договір</h5>
                     {% if expired %}
@@ -137,13 +132,13 @@
 
                     </form>
                     {% endif %}
-                </div> <!-- card-body -->
-            </div> <!-- card -->
+                </div>
+            </div>
 
-        </div> <!-- col -->
-    </div> <!-- row -->
+        </div>
+    </div>
 
-</div> <!-- container -->
+</div>
 
 {% endif %}
 
